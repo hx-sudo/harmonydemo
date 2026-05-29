@@ -1,4 +1,4 @@
-import { Product, getProductList } from '../model/Product'
+import { Product, getProductList, CartItem } from '../model/Product'
 import router from '@ohos.router'
 
 @Entry
@@ -6,6 +6,7 @@ import router from '@ohos.router'
 struct Detail {
   @State product: Product | undefined = undefined
   @State quantity: number = 1
+  @StorageLink('cartItems') cartItems: CartItem[] = []
 
   private brandRed: string = '#8B0000'
   private textPrimary: string = '#1A1A1A'
@@ -193,6 +194,15 @@ struct Detail {
               .backgroundColor(this.brandRed)
               .borderRadius(6)
               .onClick(() => {
+                // 查找购物车中是否已有该商品
+                const existIndex = this.cartItems.findIndex(
+                  (item: CartItem) => item.product.id === this.product!.id
+                )
+                if (existIndex >= 0) {
+                  this.cartItems[existIndex].quantity += this.quantity
+                } else {
+                  this.cartItems.push(new CartItem(this.product!, this.quantity))
+                }
                 AlertDialog.show({
                   title: '提示',
                   message: `已将 ${this.quantity} 件 ${this.product!.name} 加入购物车`,

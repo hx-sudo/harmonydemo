@@ -1,20 +1,26 @@
 import { Product, getProductList, CartItem } from '../model/Product'
 import router from '@ohos.router'
 
+// 初始化 AppStorage 购物车数据
+const initCart: CartItem[] = [
+  new CartItem(new Product(1, '飞天茅台 53度 500ml', 1499, '', '酱香突出，幽雅细腻，酒体醇厚'), 2),
+  new CartItem(new Product(2, '茅台王子酒 53度 500ml', 258, '', '口感柔和，适合日常饮用'), 1),
+]
+AppStorage.setOrCreate<CartItem[]>('cartItems', initCart)
+
 @Entry
 @Component
 struct Index {
   @State currentIndex: number = 0
   @State productList: Product[] = getProductList()
   @State searchText: string = ''
-  @State cartItems: CartItem[] = [
-    new CartItem(new Product(1, '飞天茅台 53度 500ml', 1499, '', '酱香突出，幽雅细腻，酒体醇厚'), 2),
-    new CartItem(new Product(2, '茅台王子酒 53度 500ml', 258, '', '口感柔和，适合日常饮用'), 1),
-  ]
+  @StorageLink('cartItems') cartItems: CartItem[] = initCart
   @State cartCount: number = 3
   @State totalPrice: number = 1499 * 2 + 258
 
   // 品牌色
+  @State selectedCategory: string = '全部'
+  private categories: string[] = ['全部', '飞天', '王子', '迎宾', '其他']
   private brandRed: string = '#8B0000'
   private brandGold: string = '#C49B3F'
   private textPrimary: string = '#1A1A1A'
@@ -23,6 +29,21 @@ struct Index {
   private bgColor: string = '#F8F6F3'
   private cardBg: string = '#FFFFFF'
   private dividerColor: string = '#EDE8E2'
+
+  onPageShow(): void {
+    this.updateCartInfo()
+  }
+
+  filterProducts(): void {
+    let list = getProductList()
+    if (this.selectedCategory !== '全部') {
+      list = list.filter((item: Product) => item.category === this.selectedCategory)
+    }
+    if (this.searchText) {
+      list = list.filter((item: Product) => item.name.includes(this.searchText))
+    }
+    this.productList = list
+  }
 
   updateCartInfo(): void {
     let count = 0
@@ -73,6 +94,7 @@ struct Index {
           .placeholderColor(this.textHint)
           .onChange((value: string) => {
             this.searchText = value
+            this.filterProducts()
           })
       }
       .width('100%')
@@ -80,31 +102,20 @@ struct Index {
 
       // 分类标签
       Row() {
-        Text('全部')
-          .fontSize(13)
-          .fontColor(this.brandRed)
-          .fontWeight(FontWeight.Bold)
-          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-          .backgroundColor('#FDF6F0')
-          .borderRadius(14)
-
-        Text('飞天系列')
-          .fontSize(13)
-          .fontColor(this.textSecondary)
-          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-          .margin({ left: 8 })
-
-        Text('王子系列')
-          .fontSize(13)
-          .fontColor(this.textSecondary)
-          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-          .margin({ left: 8 })
-
-        Text('迎宾系列')
-          .fontSize(13)
-          .fontColor(this.textSecondary)
-          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-          .margin({ left: 8 })
+        ForEach(this.categories, (cat: string) => {
+          Text(cat === '全部' ? '全部' : cat + '系列')
+            .fontSize(13)
+            .fontColor(this.selectedCategory === cat ? this.brandRed : this.textSecondary)
+            .fontWeight(this.selectedCategory === cat ? FontWeight.Bold : FontWeight.Normal)
+            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+            .backgroundColor(this.selectedCategory === cat ? '#FDF6F0' : 'transparent')
+            .borderRadius(14)
+            .margin({ left: 8 })
+            .onClick(() => {
+              this.selectedCategory = cat
+              this.filterProducts()
+            })
+        }, (cat: string) => cat)
       }
       .width('100%')
       .padding({ left: 16, right: 16, bottom: 8 })
